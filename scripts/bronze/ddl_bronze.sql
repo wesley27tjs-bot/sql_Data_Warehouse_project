@@ -55,7 +55,7 @@ CREATE TABLE bronze.erp_CUST_AZ12 (
 CREATE TABLE bronze.erp_LOC_A101 (
 --cid and gen are NVARCHAR (50), bdate is DATE
 	cid NVARCHAR (50),
-	bdate DATE, 
+	bdate TEXT, --DATE
 	gen NVARCHAR (50)
 );
 
