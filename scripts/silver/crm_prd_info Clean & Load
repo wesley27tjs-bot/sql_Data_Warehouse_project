@@ -1,0 +1,127 @@
+/*Clean data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- prd_id COUNT used to catch duplicates
+select prd_id, COUNT (*) from bronze.crm_prd_info
+group by prd_id having count (*) > 1 or prd_id is null
+
+-- find prd_id from sales details
+select sls_prd_key from bronze.crm_sales_details
+
+-- Finding prd_nm to TRIM()
+select prd_nm from bronze.crm_prd_info
+where prd_nm != trim(prd_nm)
+
+-- Check for NULL or Negative numbers in prd_cost
+select prd_cost from bronze.crm_prd_info
+where prd_cost is NUll or prd_cost <0
+
+--Select Distinct is to maintain data consisitency and standardization
+--through clear meaningfull values rather than abbrriviations
+select distinct prd_line from bronze.crm_prd_info
+
+-- No Price Overlaps which means that swapping the prd_start_dt and prd_end_dt is not a good solution
+-- There must no Nulls on prd_start_dt
+
+-- If we disregard prd_end_dt then the new prd_end_dt is the prd_start_dt of the price increase - 1 day
+select * from bronze.crm_prd_info
+where prd_end_dt < prd_start_dt
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Load Data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Recreate silver.crm_prd_info
+if object_id('silver.crm_prd_info','U') is not null
+	drop table silver.crm_prd_info;
+/*use CREATE TABLE to create the table for product info*/
+CREATE TABLE silver.crm_prd_info (
+-- prd_id and prd_cost are INT, prd_key, prd_nm and prd_line are NVARCHAR (50), prd_start_dt and prd_end_dt are DATE
+	prd_id INT NULL,
+	cat_id NVARCHAR (50) NULL, 
+	prd_key NVARCHAR (50) NULL, 
+	prd_nm NVARCHAR (50) NULL, 
+	prd_cost INT NULL,
+	prd_line NVARCHAR (50) NULL,
+	prd_start_dt DATE NULL,
+	prd_end_dt DATE NULL,
+	dwh_create_date DATETIME2 DEFAULT GETDATE()
+);
+
+--INSERT data into silver.crm_prd_info
+truncate table silver.crm_prd_info
+INSERT INTO silver.crm_prd_info(prd_id,cat_id,prd_key,prd_nm,prd_cost,prd_line,prd_start_dt,prd_end_dt)
+
+-- Set up and Clean Data from bronze.crm_prd_info
+select prd_id, 
+
+-- REPLACE() replaces a certain value within the bracket as a column
+-- SUBSTRING() is to create a string within a string as dictated by the values inside the brackets
+-- LEN() retrives the length of the value inside the brackets
+replace(substring(prd_key, 1,5),'-','_') as cat_id,
+substring (prd_key,7,len(prd_key)) as prd_key,
+prd_nm, 
+
+--ISNULL checks if value in column has NULL and replaces it with another
+ISNULL(prd_cost,0) as prd_cost, 
+
+-- case is a condition function
+-- when dictates the condition
+-- TRIM used to check for unwanted spaces and UPPER is used to check for if the variable was uppercase
+case upper(trim(prd_line)) 
+	 when 'M' then 'Mountain'
+	 when 'R' then 'Road'
+	 when 'S' then 'Other Sales'
+	 when 'T' then 'Touring'
+	 else 'n\a'
+END prd_line, 
+cast(prd_start_dt as date) as prd_start_dt, 
+
+--Due to the complexity of cleaning the prd_start_dt and prd_end_dt data, they will be isolated under bronze.crm_prd_info
+-- LEAD() access values the next row within a window
+-- In this case we partition data by product key as ordered by prd_start_dt
+
+-- DATEADD() first value tells how much time is given/taken
+-- DATEADD() adds if the second value is positive and reduces if the second value is negative
+-- DATEADD() third value is the column to access the value to be edited
+LEAD(DATEADD(day, -1, prd_start_dt)) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS prd_end_dt
+from bronze.crm_prd_info
+
+-- Example used to find cat_ids that are not in bronze.erp_PX_CAT_G1V2
+/*where replace(substring(prd_key, 1,5),'-','_') NOT IN
+(select distinct id from bronze.erp_PX_CAT_G1V2)
+
+-- Example used to find prd_key that are not in bronze.crm_sales_details
+where substring (prd_key,7,len(prd_key)) NOT IN
+(select sls_prd_key from bronze.crm_sales_details where sls_prd_key LIKE 'FK%')*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Test the data in Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- prd_id COUNT used to catch duplicates
+select prd_id, COUNT (*) from silver.crm_prd_info
+group by prd_id having count (*) > 1 or prd_id is null
+
+-- find prd_id from sales details
+select sls_prd_key from silver.crm_sales_details
+
+-- Finding prd_nm to TRIM()
+select prd_nm from silver.crm_prd_info
+where prd_nm != trim(prd_nm)
+
+-- Check for NULL or Negative numbers in prd_cost
+select prd_cost from silver.crm_prd_info
+where prd_cost is NUll or prd_cost <0
+
+--Select Distinct is to maintain data consisitency and standardization
+--through clear meaningfull values rather than abbrriviations
+select distinct prd_line from silver.crm_prd_info
+
+-- No Price Overlaps which means that swapping the prd_start_dt and prd_end_dt is not a good solution
+-- There must no Nulls on prd_start_dt
+
+-- If we disregard prd_end_dt then the new prd_end_dt is the prd_start_dt of the price increase - 1 day
+select * from silver.crm_prd_info
+where prd_end_dt < prd_start_dt
+
+-- FINAL CHECK
+select * from silver.crm_prd_info
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
