@@ -15,7 +15,7 @@ where cst_firstname != TRIM(cst_firstname) and cst_lastname != TRIM(cst_lastname
 select distinct cst_gndr from bronze.crm_cust_info
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/**/
+/*Load Data for Silver Layer*/
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 truncate table silver.crm_cust_info
 
@@ -52,6 +52,7 @@ from bronze.crm_cust_info where cst_id is not null
 )t where flag_last = 1 --and cst_gndr is not null and cst_martial_status is not null -- and cst_id = 29449 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+/*Test the data in Silver Layer*/
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- cst_id COUNT used to catch duplicates and process quality checks on silver layer to verify silver layer 
 select cst_id, COUNT (*) from silver.crm_cust_info
