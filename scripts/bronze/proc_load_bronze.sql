@@ -24,8 +24,10 @@ PRINT 'Loading CRM Tables'
 --DECLARE used to define variable
 DECLARE @start_time1 DATETIME, @end_time1 DATETIME;
 -------------------------------------------------------------------------------------------------------------------------------
+print 'RESETING Table: bronze.crm_cust_info'
+truncate table bronze.crm_cust_info 
 print ''
-print '>>> INSERTING DATA:bronze.crm_cust_info'
+print '>>> INSERTING DATA: bronze.crm_cust_info'
 --Dumps massive amount of data from external files to database
 BULK INSERT bronze.crm_cust_info 
 
@@ -56,8 +58,11 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time1,@end_time1)AS NVARCH
 --DECLARE used to define variable
 DECLARE @start_time2 DATETIME, @end_time2 DATETIME;
 -------------------------------------------------------------------------------------------------------------------------------
+print 'RESETING Table: bronze.crm_prd_info'
+truncate table bronze.crm_prd_info 
+
 print ''
-print '>>> INSERTING DATA:bronze.crm_prd_info'
+print '>>> INSERTING DATA: bronze.crm_prd_info'
 --Dumps massive amount of data from external files to database
 BULK INSERT bronze.crm_prd_info 
 
@@ -87,8 +92,11 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time2,@end_time2)AS NVARCH
 --DECLARE used to define variable
 DECLARE @start_time3 DATETIME, @end_time3 DATETIME;
 -------------------------------------------------------------------------------------------------------------------------------
+print 'RESETING Table: bronze.crm_sales_details'
+truncate table bronze.crm_sales_details 
+
 print ''
-print '>>> INSERTING DATA:bronze.crm_sales_details'
+print '>>> INSERTING DATA: bronze.crm_sales_details'
 --Dumps massive amount of data from external files to database
 BULK INSERT bronze.crm_sales_details 
 
@@ -122,8 +130,11 @@ PRINT '/************************************************************************
 --DECLARE used to define variable
 DECLARE @start_time4 DATETIME, @end_time4 DATETIME;
 -------------------------------------------------------------------------------------------------------------------------------
+print 'RESETING Table: bronze.erp_CUST_AZ12'
+truncate table bronze.erp_CUST_AZ12
+
 print ''
-print '>>> INSERTING DATA:bronze.erp_CUST_AZ12'
+print '>>> INSERTING DATA: bronze.erp_CUST_AZ12'
 --Dumps massive amount of data from external files to database
 BULK INSERT bronze.erp_CUST_AZ12 
 
@@ -153,8 +164,11 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time4,@end_time4)AS NVARCH
 --DECLARE used to define variable
 DECLARE @start_time5 DATETIME, @end_time5 DATETIME;
 -------------------------------------------------------------------------------------------------------------------------------
+print 'RESETING Table: bronze.erp_LOC_A101'
+truncate table bronze.erp_LOC_A101
+
 print ''
-print '>>> INSERTING DATA:bronze.erp_LOC_A101'
+print '>>> INSERTING DATA: bronze.erp_LOC_A101'
 --Dumps massive amount of data from external files to database
 BULK INSERT bronze.erp_LOC_A101 
 
@@ -184,8 +198,11 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time5,@end_time5)AS NVARCH
 --DECLARE used to define variable
 DECLARE @start_time6 DATETIME, @end_time6 DATETIME;
 -------------------------------------------------------------------------------------------------------------------------------
+print 'RESETING Table: bronze.erp_PX_CAT_G1V2'
+truncate table bronze.erp_PX_CAT_G1V2
+
 print ''
-print '>>> INSERTING DATA:bronze.erp_PX_CAT_G1V2'
+print '>>> INSERTING DATA: bronze.erp_PX_CAT_G1V2'
 --Dumps massive amount of data from external files to database
 BULK INSERT bronze.erp_PX_CAT_G1V2 
 
