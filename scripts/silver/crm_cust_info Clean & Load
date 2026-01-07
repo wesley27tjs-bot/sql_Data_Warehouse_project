@@ -1,0 +1,69 @@
+/*Clean data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- cst_id COUNT used to catch duplicates
+select cst_id, COUNT (*) from bronze.crm_cust_info
+group by cst_id having count (*) > 1 or cst_id is null
+
+
+-- TRIM used to check for unwanted spaces
+select cst_firstname, cst_lastname from bronze.crm_cust_info
+where cst_firstname != TRIM(cst_firstname) and cst_lastname != TRIM(cst_lastname)
+
+
+--Select Distinct is to maintain data consisitency and standardization
+--through clear meaningfull values rather than abbrriviations
+select distinct cst_gndr from bronze.crm_cust_info
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/**/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+truncate table silver.crm_cust_info
+
+-- To isert data into silver.crm_cust_info
+INSERT INTO silver.crm_cust_info (cst_id,cst_key,cst_firstname,cst_lastname,cst_martial_status,cst_gndr,cst_create_date)
+select cst_id, cst_key,
+
+-- TRIM('x') as 'x' is used to make sure all cst_firstname and cst_lastname do not have unwanted spaces
+TRIM(cst_firstname) as cst_firstname,
+TRIM(cst_lastname) as cst_lastname,
+
+-- case is a condition function
+-- when dictates the condition
+-- TRIM used to check for unwanted spaces and UPPER is used to check for if the variable was uppercase
+case when UPPER(TRIM(cst_martial_status)) = 'S' then 'Single'
+	 when UPPER(TRIM(cst_martial_status)) = 'M' then 'Married'
+	 else 'n/a'
+end cst_martial_status,
+
+-- case is a condition function
+-- when dictates the condition
+-- TRIM used to check for unwanted spaces and UPPER is used to check for if the variable was uppercase
+case when UPPER(TRIM(cst_gndr)) = 'F' then 'Female'
+	 when UPPER(TRIM(cst_gndr)) = 'M' then 'Male'
+	 else 'n/a'
+end cst_gndr,
+cst_create_date
+from ( select *,
+
+--ROW_NUMBER is used to show case duplicates and the combination of cst_create_date, desc and
+--flag_last makes sure that the most recently created version is showed first.
+ROW_NUMBER () over (partition by cst_id order by cst_create_date desc) as flag_last
+from bronze.crm_cust_info where cst_id is not null
+)t where flag_last = 1 --and cst_gndr is not null and cst_martial_status is not null -- and cst_id = 29449 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- cst_id COUNT used to catch duplicates and process quality checks on silver layer to verify silver layer 
+select cst_id, COUNT (*) from silver.crm_cust_info
+group by cst_id having count (*) > 1 or cst_id is null
+
+
+-- TRIM used to check for unwanted spaces
+select cst_firstname, cst_lastname from silver.crm_cust_info
+where cst_firstname != TRIM(cst_firstname) and cst_lastname != TRIM(cst_lastname)
+
+
+--Select Distinct is to maintain data consisitency and standardization
+--through clear meaningfull values rather than abbrriviations
+select distinct cst_gndr from silver.crm_cust_info
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
