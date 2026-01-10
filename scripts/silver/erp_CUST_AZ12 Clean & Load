@@ -1,0 +1,58 @@
+/*Clean data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- find a cid based on a selected text example 
+SELECT
+cid,
+bdate,
+gen
+FROM bronze.erp_CUST_AZ12
+where cid like '%AW00011000%'
+
+-- To validate that there are no cid that are not in cst_key of silver.crm_cust_info
+/*
+where case when cid like 'NAS%' then substring(cid, 4, len(cid))
+	 else cid
+	 end not in (select distinct cst_key from silver.crm_cust_info)*/
+
+-- validate that there is a cst_key that matches cid on bronze.erp_CUST_AZ12
+select*from[silver].[crm_cust_info]
+where cst_key like '%AW00011000%'
+
+-- Indentify Out-Of-Range Dates
+SELECT bdate FROM bronze.erp_CUST_AZ12
+where bdate < '1924-01-01' or bdate > getdate()
+
+select distinct gen from bronze.erp_CUST_AZ12
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Load Data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+insert into silver.erp_CUST_AZ12 (cid,bdate,gen)
+
+SELECT
+-- case used to remove a certain set of first three letter from cid
+case when cid like 'NAS%' then substring(cid, 4, len(cid))
+	 else cid
+end as cid,
+case when bdate < '1924-01-01' or bdate > getdate() then NULL
+	 else bdate
+end as bdate,
+case when UPPER(TRIM(gen)) = 'F' or gen = 'Female 'then 'Female'
+	 when UPPER(TRIM(gen)) = 'M'  or gen = 'Male' then 'Male'
+	 else 'n/a'
+end as gen
+FROM bronze.erp_CUST_AZ12
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Test the data in Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- validate that there is a cst_key that matches cid on silver.erp_CUST_AZ12
+select*from[silver].[crm_cust_info]
+where cst_key like '%AW00011000%'
+
+-- Indentify Out-Of-Range Dates
+SELECT bdate FROM silver.erp_CUST_AZ12
+where bdate < '1924 -01-01' or bdate > getdate()
+
+select distinct gen from silver.erp_CUST_AZ12
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
