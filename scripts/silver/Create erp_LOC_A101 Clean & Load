@@ -1,0 +1,57 @@
+/*Clean data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Removing the dashes in cid to make it match with cst_key from silver.crm_cust_info
+SELECT 
+replace (cid, '-', '') cid,
+cntry 
+FROM bronze.erp_LOC_A101
+where replace(cid, '-', '') not in (select cst_key from silver.crm_cust_info)
+
+select cst_key from silver.crm_cust_info
+
+-- Data Standardization and Consistency
+select distinct
+cntry,
+
+-- while the OR function works for multiple conditions, the IN function works for single and multiple OR functions
+case when cntry is null or cntry = '' then 'n/a'
+	 when cntry IN ('US', 'USA') then 'United States'
+	 when cntry = 'DE' then 'Germany'
+	 else cntry
+end as cntry2
+FROM bronze.erp_LOC_A101
+order by cntry
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Load Data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ALWAYS REMEMBER TO INCLUDE THE COLUMNS WHEN USING THE 'INSERT' FUNCTION INTO A TABLE
+INSERT INTO silver.erp_LOC_A101 (cid, cntry)
+SELECT
+-- Removing the dashes in cid to make it match with cst_key from silver.crm_cust_info
+replace (cid, '-', '') cid,
+case when cntry is null or cntry = '' then 'n/a'
+	 when cntry IN ('US', 'USA') then 'United States'
+	 when cntry = 'DE' then 'Germany'
+	 else cntry
+end as cntry 
+FROM bronze.erp_LOC_A101
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Test the data in Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Removing the dashes in cid to make it match with cst_key from silver.crm_cust_info
+SELECT 
+replace (cid, '-', '') cid,
+cntry 
+FROM silver.erp_LOC_A101
+where replace(cid, '-', '') not in (select cst_key from silver.crm_cust_info)
+
+select cst_key from silver.crm_cust_info
+
+-- Data Standardization and Consistency
+select distinct
+cntry
+FROM silver.erp_LOC_A101
+order by cntry
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
