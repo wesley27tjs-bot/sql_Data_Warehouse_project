@@ -23,6 +23,7 @@ PRINT 'Loading CRM Tables'
 									/*CUSTOMER INFORMATION TABLE*/
 --DECLARE used to define variable
 DECLARE @start_time1 DATETIME, @end_time1 DATETIME;
+SET @start_time1 = GETDATE();
 -------------------------------------------------------------------------------------------------------------------------------
 print 'RESETING Table: bronze.crm_cust_info'
 truncate table bronze.crm_cust_info 
@@ -57,6 +58,7 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time1,@end_time1)AS NVARCH
 									/*PRODUCT INFORMATION TABLE*/
 --DECLARE used to define variable
 DECLARE @start_time2 DATETIME, @end_time2 DATETIME;
+SET @start_time2 = GETDATE();
 -------------------------------------------------------------------------------------------------------------------------------
 print 'RESETING Table: bronze.crm_prd_info'
 truncate table bronze.crm_prd_info 
@@ -91,6 +93,7 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time2,@end_time2)AS NVARCH
 									/*SALES DETAIL TABLE*/
 --DECLARE used to define variable
 DECLARE @start_time3 DATETIME, @end_time3 DATETIME;
+SET @start_time3 = GETDATE();
 -------------------------------------------------------------------------------------------------------------------------------
 print 'RESETING Table: bronze.crm_sales_details'
 truncate table bronze.crm_sales_details 
@@ -129,6 +132,7 @@ PRINT '/************************************************************************
 									/*CUST AZ12 TABLE*/
 --DECLARE used to define variable
 DECLARE @start_time4 DATETIME, @end_time4 DATETIME;
+SET @start_time4 = GETDATE();
 -------------------------------------------------------------------------------------------------------------------------------
 print 'RESETING Table: bronze.erp_CUST_AZ12'
 truncate table bronze.erp_CUST_AZ12
@@ -163,6 +167,7 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time4,@end_time4)AS NVARCH
 									/*LOC A101 TABLE*/
 --DECLARE used to define variable
 DECLARE @start_time5 DATETIME, @end_time5 DATETIME;
+SET @start_time5 = GETDATE();
 -------------------------------------------------------------------------------------------------------------------------------
 print 'RESETING Table: bronze.erp_LOC_A101'
 truncate table bronze.erp_LOC_A101
@@ -197,6 +202,7 @@ print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time5,@end_time5)AS NVARCH
 									/*PX CAT G1V2 TABLE*/
 --DECLARE used to define variable
 DECLARE @start_time6 DATETIME, @end_time6 DATETIME;
+SET @start_time6 = GETDATE();
 -------------------------------------------------------------------------------------------------------------------------------
 print 'RESETING Table: bronze.erp_PX_CAT_G1V2'
 truncate table bronze.erp_PX_CAT_G1V2
