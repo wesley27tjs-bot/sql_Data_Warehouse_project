@@ -1,0 +1,208 @@
+create or alter procedure silver.load_silver as 
+begin
+
+--DECLARE used to define variable
+DECLARE @start_time DATETIME, @end_time DATETIME;
+--TRY and CATCH function to find and catch errors
+begin try
+SET @start_time = GETDATE();
+	PRINT 'Loading Silver Layer'
+	PRINT'======================================================================================================================'
+	-- REMEBER TO TRUNCATE EACH TABLE WHEN LOADING DATA
+	PRINT 'Loading CRM Tables'
+	PRINT '/*******************************************************************************************************************/'
+
+										/*CUSTOMER INFORMATION TABLE*/
+DECLARE @start_time1 DATETIME, @end_time1 DATETIME;
+SET @start_time1 = GETDATE();
+	-------------------------------------------------------------------------------------------------------------------------------
+	PRINT 'RESETING TABLE: silver.crm_cust_info'
+	truncate table silver.crm_cust_info
+
+	PRINT 'INSERTING DATA: silver.crm_cust_info'
+	INSERT INTO silver.crm_cust_info (cst_id,cst_key,cst_firstname,cst_lastname,cst_martial_status,cst_gndr,cst_create_date)
+	select cst_id, cst_key,
+	TRIM(cst_firstname) as cst_firstname,
+	TRIM(cst_lastname) as cst_lastname,
+	case when UPPER(TRIM(cst_martial_status)) = 'S' then 'Single'
+		 when UPPER(TRIM(cst_martial_status)) = 'M' then 'Married'
+		 else 'n/a'
+	end cst_martial_status,
+	case when UPPER(TRIM(cst_gndr)) = 'F' then 'Female'
+		 when UPPER(TRIM(cst_gndr)) = 'M' then 'Male'
+		 else 'n/a'
+	end cst_gndr,
+	cst_create_date
+	from ( select *, ROW_NUMBER () over (partition by cst_id order by cst_create_date desc) as flag_last
+	from bronze.crm_cust_info where cst_id is not null
+	)t where flag_last = 1 
+SET @end_time1 = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time1,@end_time1)AS NVARCHAR)+' seconds';
+	-------------------------------------------------------------------------------------------------------------------------------
+
+										/*PRODUCT INFORMATION TABLE*/
+DECLARE @start_time2 DATETIME, @end_time2 DATETIME;
+SET @start_time2 = GETDATE();
+	-------------------------------------------------------------------------------------------------------------------------------
+	--INSERT data into silver.crm_prd_info
+	PRINT 'RESETING TABLE: silver.crm_cust_info'
+	truncate table silver.crm_prd_info
+
+	PRINT 'INSERTING DATA: silver.crm_cust_info'
+	INSERT INTO silver.crm_prd_info(prd_id,cat_id,prd_key,prd_nm,prd_cost,prd_line,prd_start_dt,prd_end_dt)
+	-- Set up and Clean Data from bronze.crm_prd_info
+	select prd_id, 
+	replace(substring(prd_key, 1,5),'-','_') as cat_id,
+	substring (prd_key,7,len(prd_key)) as prd_key,
+	prd_nm, 
+	ISNULL(prd_cost,0) as prd_cost, 
+	case upper(trim(prd_line)) 
+		 when 'M' then 'Mountain'
+		 when 'R' then 'Road'
+		 when 'S' then 'Other Sales'
+		 when 'T' then 'Touring'
+		 else 'n\a'
+	END prd_line, 
+	cast(prd_start_dt as date) as prd_start_dt, 
+	LEAD(DATEADD(day, -1, prd_start_dt)) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS prd_end_dt
+	from bronze.crm_prd_info
+SET @end_time2 = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time2,@end_time2)AS NVARCHAR)+' seconds';
+	-------------------------------------------------------------------------------------------------------------------------------
+
+										/*SALES DETAILS TABLE*/
+DECLARE @start_time3 DATETIME, @end_time3 DATETIME;
+SET @start_time3 = GETDATE();
+	-------------------------------------------------------------------------------------------------------------------------------
+	print 'RESETING TABLE: silver.crm_sales_details'
+	truncate table silver.crm_sales_details
+
+	print 'INSERTING DATA: silver.crm_cust_info'
+	Insert into silver.crm_sales_details(
+		sls_ord_num,
+		sls_prd_key,
+		sls_cust_id,
+		sls_order_dt,
+		sls_ship_dt,
+		sls_due_dt,
+		sls_sales,
+		sls_quantity,
+		sls_price
+	)
+	SELECT
+		sls_ord_num,
+		sls_prd_key,
+		sls_cust_id,
+		case when sls_order_dt <= 0 or len(sls_order_dt) != 8 then NULL 
+			 else cast(cast(sls_order_dt as varchar) as date)
+		end as sls_order_dt,
+		case when sls_ship_dt <= 0 or len(sls_ship_dt) != 8 then NULL 
+			 else cast(cast(sls_ship_dt as varchar) as date)
+		end as sls_ship_dt,
+		case when sls_due_dt <= 0 or len(sls_due_dt) != 8 then NULL 
+			 else cast(cast(sls_due_dt as varchar) as date)
+		end as sls_due_dt,
+		case when sls_sales is null or sls_sales <= 0 or sls_sales != sls_quantity * ABS(sls_price)
+				then sls_quantity * abs(sls_price)
+			 else sls_sales
+		end as sls_sales,
+		sls_quantity,
+		case when sls_price is null or sls_price <= 0
+			 then sls_sales/nullif(sls_quantity,0)
+			 else sls_price
+		end as sls_price
+	FROM bronze.crm_sales_details
+SET @end_time3 = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time3,@end_time3)AS NVARCHAR)+' seconds';
+	-------------------------------------------------------------------------------------------------------------------------------
+	PRINT '/*******************************************************************************************************************/'
+
+	PRINT 'Loading ERP Tables'
+	PRINT '/*******************************************************************************************************************/'
+										/*CUST AZ12 TABLE*/
+DECLARE @start_time4 DATETIME, @end_time4 DATETIME;
+SET @start_time4 = GETDATE();
+	-------------------------------------------------------------------------------------------------------------------------------
+	print 'RESETING TABLE: silver.erp_CUST_AZ12'
+	truncate table silver.erp_CUST_AZ12
+
+	print 'INSERTING DATA: silver.erp_CUST_AZ12'
+	insert into silver.erp_CUST_AZ12 (cid,bdate,gen)
+
+	SELECT
+	-- case used to remove a certain set of first three letter from cid
+	case when cid like 'NAS%' then substring(cid, 4, len(cid))
+		 else cid
+	end as cid,
+	case when bdate < '1924-01-01' or bdate > getdate() then NULL
+		 else bdate
+	end as bdate,
+	case when UPPER(TRIM(gen)) = 'F' or gen = 'Female 'then 'Female'
+		 when UPPER(TRIM(gen)) = 'M'  or gen = 'Male' then 'Male'
+		 else 'n/a'
+	end as gen
+	FROM bronze.erp_CUST_AZ12
+SET @end_time4 = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time4,@end_time4)AS NVARCHAR)+' seconds';
+	-------------------------------------------------------------------------------------------------------------------------------
+
+										/*LOC A101 TABLE*/
+DECLARE @start_time5 DATETIME, @end_time5 DATETIME;
+SET @start_time5 = GETDATE();
+	-------------------------------------------------------------------------------------------------------------------------------
+	print 'RESETING TABLE: silver.erp_LOC_A101'
+	truncate table silver.erp_LOC_A101
+
+	print 'INSERTING DATA: silver.erp_LOC_A101'
+	INSERT INTO silver.erp_LOC_A101 (cid, cntry)
+	SELECT
+	-- Removing the dashes in cid to make it match with cst_key from silver.crm_cust_info
+	replace (cid, '-', '') cid,
+	case when cntry is null or cntry = '' then 'n/a'
+		 when cntry IN ('US', 'USA') then 'United States'
+		 when cntry = 'DE' then 'Germany'
+		 else cntry
+	end as cntry 
+	FROM bronze.erp_LOC_A101
+SET @end_time5 = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time5,@end_time5)AS NVARCHAR)+' seconds';
+	-------------------------------------------------------------------------------------------------------------------------------
+
+										/*PX CAT G1V2 TABLE*/
+DECLARE @start_time6 DATETIME, @end_time6 DATETIME;
+SET @start_time6 = GETDATE();
+	-------------------------------------------------------------------------------------------------------------------------------
+	--Reset table
+	print 'RESETING TABLE: silver.erp_PX_CAT_G1V2'
+	truncate table silver.erp_PX_CAT_G1V2
+
+	-- Insert data into table
+	print 'INSERTING DATA: silver.erp_PX_CAT_G1V2'
+	insert into silver.erp_PX_CAT_G1V2 (id,cat,subcat,maintenance)
+	SELECT 
+	id,
+	cat,
+	subcat,
+	maintenance
+	FROM bronze.erp_PX_CAT_G1V2
+SET @end_time6 = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time6,@end_time6)AS NVARCHAR)+' seconds';
+	-------------------------------------------------------------------------------------------------------------------------------
+	PRINT '/*******************************************************************************************************************/'
+SET @end_time = GETDATE();
+print '<<Load Duration: '+CAST(DATEDIFF(second,@start_time,@end_time)AS NVARCHAR)+' seconds';
+end try
+
+BEGIN CATCH
+	PRINT '/*******************************************************************************************************************/'
+	PRINT 'CRITCAL ERROR IN LOADING SILVER LAYER!'
+	--ERROR_MESSAGE retrives the text of the error
+	PRINT 'Located source of error '+ ERROR_MESSAGE()
+	--Using CAST to transform into ERROR_NUMBER (numerical code) and 
+	--ERROR STATE (a function in SQL Server that returns the state number of the error) 
+	--NVARCHAR which is a data type used to store variable-length Unicode data
+	PRINT 'How are you gentlemen !! '+ CAST(ERROR_NUMBER()AS NVARCHAR)
+	PRINT 'All your base are belong to us '+ CAST(ERROR_STATE()AS NVARCHAR)
+	PRINT '/*******************************************************************************************************************/'
+END CATCH
+end
