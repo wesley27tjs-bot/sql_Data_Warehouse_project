@@ -1,0 +1,40 @@
+/*Clean data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- id from bronze.erp_PX_CAT_G1V2 is the same as cat_id from silver.crm_prd_info
+-- Check for unwanted Spaces
+SELECT * FROM bronze.erp_PX_CAT_G1V2
+where cat != TRIM(cat) or subcat != TRIM(subcat) or maintenance != TRIM(maintenance)
+
+-- Data Standardization and Consistency
+SELECT distinct cat FROM bronze.erp_PX_CAT_G1V2
+SELECT distinct subcat FROM bronze.erp_PX_CAT_G1V2
+SELECT distinct maintenance FROM bronze.erp_PX_CAT_G1V2
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Load Data for Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Reset table
+truncate table silver.erp_PX_CAT_G1V2
+
+-- Insert data into table
+insert into silver.erp_PX_CAT_G1V2 (id,cat,subcat,maintenance)
+SELECT 
+id,
+cat,
+subcat,
+maintenance
+FROM bronze.erp_PX_CAT_G1V2
+
+select * from silver.erp_PX_CAT_G1V2
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*Test the data in Silver Layer*/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT * FROM silver.erp_PX_CAT_G1V2
+where cat != TRIM(cat) or subcat != TRIM(subcat) or maintenance != TRIM(maintenance)
+
+-- Data Standardization and Consistency
+SELECT distinct cat FROM silver.erp_PX_CAT_G1V2
+SELECT distinct subcat FROM silver.erp_PX_CAT_G1V2
+SELECT distinct maintenance FROM silver.erp_PX_CAT_G1V2
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
