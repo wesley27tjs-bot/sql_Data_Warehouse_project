@@ -1,0 +1,96 @@
+                                /*ORGANISE DATA FOR THE CREATION OF DIMENSION CUSTOMERS TABLE*/
+/*===============================================================================================================================================================*/
+-- After Joining tables, check for any duplicates
+--select cst_id, count(*) from(
+
+-- selecting all columns except dwh_create_date, putting ci. in front of all columns for customer info
+SELECT 
+	-- Data from first table
+	ci.cst_id,
+	ci.cst_key,
+	ci.cst_firstname,
+	ci.cst_lastname,
+	ci.cst_martial_status,
+	ci.cst_gndr,
+	ci.cst_create_date,
+
+	-- Data from second table
+	ca.bdate,
+	ca.gen,
+
+	-- Data from third table
+	la.cntry
+FROM silver.crm_cust_info ci
+
+-- Time to join the data with another table, in this case avoiding INNER JOIN
+-- May lose customers due to data conflict within tables
+left join silver.erp_CUST_AZ12 ca
+on ci.cst_key = ca.cid
+left join silver.erp_LOC_A101 la
+on ci.cst_key = la.cid
+--)t group by cst_id having count(*) > 1
+
+-- Need for Data Integration due to repeat data from cst_gndr and gen
+SELECT distinct
+	-- Data from first table
+	ci.cst_gndr,
+	-- Data from second table
+	ca.gen,
+-- From the results of the Select Distinct above, approach the experts which data is the master data
+	/*Incase ci.cst_gndr is the master data*/
+	case when ci.cst_gndr != 'n\a' then ci.cst_gndr
+		 else coalesce(ca.gen,'n\a') 
+	end as new_gen1,
+
+	/*Incase ca.gen is the master data*/
+	case when ca.gen is not null or ca.gen != 'n\a' then ca.gen
+		 else coalesce (ci.cst_gndr, 'n/a')
+	end as new_gen2
+FROM silver.crm_cust_info ci
+-- Time to join the data with another table, in this case avoiding INNER JOIN
+-- May lose customers due to data conflict within tables
+left join silver.erp_CUST_AZ12 ca
+on ci.cst_key = ca.cid
+left join silver.erp_LOC_A101 la
+on ci.cst_key = la.cid
+order by 2,1
+/*===============================================================================================================================================================*/
+
+                                        /*CREATE VIEW OF DIMENSION CUSTOMERS TABLE*/
+/*===============================================================================================================================================================*/
+Create view  gold.dim_customers as 
+-- selecting all columns except dwh_create_date, putting ci. in front of all columns for customer info
+SELECT 
+-- SURROGATE KEY: system-generated unique identifier assigned to each record in a table
+	/*DDL-based generation*/
+	/*Query-based using Window Function (ROW_NUMBER)*/
+	ROW_NUMBER() over (order by cst_id) as customer_key,
+
+	-- Moved columns and changed column names for readibility
+	/*DIMESIONS*/
+	ci.cst_id as customer_id,
+	ci.cst_key as customer_number,
+	ci.cst_firstname as first_name,
+	ci.cst_lastname as last_name,
+	la.cntry as country,
+	ci.cst_martial_status as martial_status,
+
+	/*FACTS*/
+	/*Incase ci.cst_gndr is the master data*/
+	case when ci.cst_gndr != 'n\a' then ci.cst_gndr
+		 else coalesce(ca.gen,'n\a') 
+	end as gender,
+	ci.cst_create_date as create_date,
+	ca.bdate as birthday
+
+	-- Data from third table
+FROM silver.crm_cust_info ci
+
+-- Time to join the data with another table, in this case avoiding INNER JOIN
+-- May lose customers due to data conflict within tables
+left join silver.erp_CUST_AZ12 ca
+on ci.cst_key = ca.cid
+left join silver.erp_LOC_A101 la
+on ci.cst_key = la.cid
+--)t group by cst_id having count(*) > 1
+/*===============================================================================================================================================================*/
