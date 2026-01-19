@@ -1,0 +1,49 @@
+                                /*ORGANISE DATA FOR THE CREATION OF DIMENSION PRODUCTS TABLE*/
+/*===============================================================================================================================================================*/
+-- Check quality of results, making sure there are no duplicates
+select prd_key, Count (*) from (
+-- Grab data from silver.crm_prd_info pn
+SELECT
+	-- Data from first table (silver.crm_prd_info)
+	pn.prd_id,
+	pn.cat_id,
+	pn.prd_key,
+	pn.prd_nm,
+	pn.prd_cost,
+	pn.prd_line,
+	pn.prd_start_dt,
+
+	-- Data from second table (silver.erp_PX_CAT_G1V2)
+	pc.cat,
+	pc.subcat,
+	pc.maintenance
+FROM silver.crm_prd_info pn
+left join silver.erp_PX_CAT_G1V2 pc
+on pn.cat_id = pc.id
+where prd_end_dt is null -- filter all historical data
+)t group by prd_key having count(*) > 1
+/*===============================================================================================================================================================*/
+
+                                        /*CREATE VIEW OF DIMENSION CUSTOMERS TABLE*/
+/*===============================================================================================================================================================*/
+/*Create dimension view for product info*/
+create view gold.dim_products as
+-- Organise the columns and renaming them for readibility
+SELECT
+	-- Add row number as order by sorted product key and start date
+	row_number() over (order by pn.prd_start_dt, pn.prd_key) as product_key,
+	pn.prd_id as product_id,
+	pn.prd_key as product_number,
+	pn.prd_nm as product_name,
+	pn.cat_id as category_id,
+	pc.cat as category,
+	pc.subcat as subcategory_id,
+	pc.maintenance,
+	pn.prd_cost as product_cost,
+	pn.prd_line as product_line,
+	pn.prd_start_dt as start_date
+FROM silver.crm_prd_info pn
+left join silver.erp_PX_CAT_G1V2 pc
+on pn.cat_id = pc.id
+where prd_end_dt is null -- filter all historical data 
+/*===============================================================================================================================================================*/
